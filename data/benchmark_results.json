@@ -1,0 +1,54 @@
+{
+  "graph_nodes": 25554,
+  "graph_edges": 59877,
+  "total_pois": 3262,
+  "trials_per_setting": 300,
+  "latency_by_k": {
+    "k=2": {
+      "mean_ms": 48.91,
+      "p50_ms": 47.59,
+      "p95_ms": 54.41,
+      "wavefront_pruned_pct": 94.42
+    },
+    "k=3": {
+      "mean_ms": 69.39,
+      "p50_ms": 69.23,
+      "p95_ms": 72.96,
+      "wavefront_pruned_pct": 90.89
+    },
+    "k=4": {
+      "mean_ms": 90.72,
+      "p50_ms": 90.7,
+      "p95_ms": 93.86,
+      "wavefront_pruned_pct": 87.67
+    },
+    "k=6": {
+      "mean_ms": 200.28,
+      "p50_ms": 207.27,
+      "p95_ms": 218.5,
+      "wavefront_pruned_pct": 84.57
+    }
+  },
+  "alpha_tradeoff_k4": {
+    "alpha=0.0": {
+      "mean_f_max_min": 25.43,
+      "mean_per_person_min": 14.48,
+      "jains_fairness_index": 0.7483
+    },
+    "alpha=0.5": {
+      "mean_f_max_min": 19.16,
+      "mean_per_person_min": 15.8,
+      "jains_fairness_index": 0.9275
+    },
+    "alpha=1.0": {
+      "mean_f_max_min": 19.0,
+      "mean_per_person_min": 16.2,
+      "jains_fairness_index": 0.9431
+    }
+  },
+  "rush_hour_impact_k4": {
+    "zone_shift_rate_pct": 77.33,
+    "normal_mean_f_max_min": 19.16,
+    "rush_17h30_mean_f_max_min": 32.18
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "bbox": [
+    106.58,
+    10.64,
+    106.815,
+    10.89
+  ],
+  "grid": "5x5",
+  "nodes": 157854,
+  "directed_edges": 364261,
+  "major_road_edges": 51116,
+  "local_alley_edges": 313145,
+  "total_pois": 4599,
+  "pois_by_category": {
+    "restaurant": 2532,
+    "cafe": 1395,
+    "entertainment": 406,
+    "sports": 266
+  },
+  "build_seconds": 12740.1
+}
