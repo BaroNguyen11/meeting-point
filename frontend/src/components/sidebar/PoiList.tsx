@@ -17,6 +17,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export function PoiList({ pois, selectedPoiId, onSelectPoi }: PoiListProps) {
+  const cardRefs = React.useRef<Record<number, HTMLDivElement | null>>({});
+  React.useEffect(() => {
+    if (!selectedPoiId) return;
+    cardRefs.current[selectedPoiId]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  }, [selectedPoiId,pois]);
   return (
     <div className="flex-1 overflow-y-auto p-3 space-y-2">
       <div className="text-[11px] font-medium text-zinc-400 px-1 flex justify-between">
@@ -31,12 +39,13 @@ export function PoiList({ pois, selectedPoiId, onSelectPoi }: PoiListProps) {
         return (
           <div
             key={poi.poi_id}
+            ref={(el) => {cardRefs.current[poi.poi_id] = el}}
             onClick={() => onSelectPoi(poi)}
-            className={`p-3 rounded-md border cursor-pointer transition ${
-              isSelected
+            className={`p-3 rounded-md border cursor-pointer transition ${isSelected
                 ? "bg-zinc-800/90 border-sky-500/70"
                 : "bg-zinc-950/60 border-zinc-800/90 hover:border-zinc-700 hover:bg-zinc-900"
-            }`}
+              }`}
+         
           >
             <div className="flex justify-between items-start gap-2">
               <div>

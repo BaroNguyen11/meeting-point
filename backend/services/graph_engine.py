@@ -7,7 +7,18 @@ from scipy.spatial import cKDTree
 
 
 class GraphEngine:
-    def __init__(self, adj_path: str, meta_path: str, poi_path: str):
+    def __init__(
+        self,
+        adj_path: str | None = None,
+        meta_path: str | None = None,
+        poi_path: str | None = None,
+    ):
+        if adj_path is None or meta_path is None or poi_path is None:
+            from backend.core.config import settings
+            adj_path = adj_path or settings.GRAPH_ADJ_PATH
+            meta_path = meta_path or settings.GRAPH_META_PATH
+            poi_path = poi_path or settings.POI_CSV_PATH
+
         t0 = time.perf_counter()
         self.adj_matrix = load_npz(adj_path).tocsr()
         meta = np.load(meta_path, allow_pickle=True)

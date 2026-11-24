@@ -253,14 +253,95 @@ async def search_places_in_area(
     south: float,
     east: float,
     north: float,
-    limit: int = 30,
+    limit: int = 15,
 ) -> list[dict]:
-    """Tìm địa điểm trong khung nhìn bản đồ; tự nới bán kính quanh tâm nếu vùng đang zoom ít kết quả."""
+    """Tìm địa điểm trong khung nhìn bản đồ với biên đệm 15%, lọc chính xác theo môn thể thao."""
     q_clean = query.strip()
     q_norm = _normalize_vn(q_clean)
     cat_intent = _detect_category_intent(q_norm)
+
+    d_lat = abs(north - south)
+    d_lng = abs(east - west)
+    pad_lat = max(d_lat * 0.15, 0.002)
+    pad_lng = max(d_lng * 0.15, 0.002)
+    min_lat = min(south, north) - pad_lat
+    max_lat = max(south, north) + pad_lat
+    min_lng = min(west, east) - pad_lng
+    max_lng = max(west, east) + pad_lng
     center_lat = (south + north) / 2.0
     center_lng = (west + east) / 2.0
+
+    OSM_GARBAGE_NAMES = (
+        "cong vao", "bai giu xe", "nha ve sinh", "gui xe", "toilet",
+        "parking", "gate", "entrance", "wc", "loi vao",
+    )
+    FOOTBALL_QUERY_WORDS = (
+        "san bong da", "san bong", "san banh", "da banh", "bong da",
+        "futsal", "soccer", "football",
+    )
+    FOOTBALL_MATCH_WORDS = (
+        "bong da", "san banh", "futsal", "soccer", "football",
+        "co nhan tao", "san 5", "san 7", "san mini",
+    )
+    OTHER_SPORT_EXCLUSIONS = (
+        "badminton", "cau long", "pickleball", "tennis", "bong ro",
+        "bong chuyen", "gym", "fitness", "yoga", "boi", "swimming",
+        "bida", "billiards", "golf", "climbing",
+    )
+    BADMINTON_WORDS = ("cau long", "badminton")
+    PICKLEBALL_WORDS = ("pickleball",)
+    TENNIS_WORDS = ("tennis", "quan vot")
+    SWIMMING_WORDS = ("boi", "swimming", "ho boi")
+    GYM_WORDS = ("gym", "the hinh", "fitness", "yoga")
+
+    sport_intent = None
+    if any(kw in q_norm for kw in FOOTBALL_QUERY_WORDS):
+        sport_intent = "football"
+    elif any(kw in q_norm for kw in BADMINTON_WORDS):
+        sport_intent = "badminton"
+    elif any(kw in q_norm for kw in PICKLEBALL_WORDS):
+        sport_intent = "pickleball"
+    elif any(kw in q_norm for kw in TENNIS_WORDS):
+        sport_intent = "tennis"
+    elif any(kw in q_norm for kw in SWIMMING_WORDS):
+        sport_intent = "swimming"
+    elif any(kw in q_norm for kw in GYM_WORDS):
+        sport_intent = "gym"
+
+    def _is_match(name_clean: str, sub_type_str: str) -> bool:
+        n_norm = _normalize_vn(name_clean)
+        s_norm = _normalize_vn(sub_type_str)
+
+        if any(g in n_norm for g in OSM_GARBAGE_NAMES):
+            return False
+
+        if sport_intent == "football":
+            if any(w in n_norm or w in s_norm for w in FOOTBALL_MATCH_WORDS):
+                return True
+            if s_norm in ("pitch", "stadium", "soccer", "football") and not any(other in n_norm for other in OTHER_SPORT_EXCLUSIONS):
+                return True
+            return False
+
+        if sport_intent == "badminton":
+            return any(w in n_norm or w in s_norm for w in BADMINTON_WORDS)
+
+        if sport_intent == "pickleball":
+            return any(w in n_norm or w in s_norm for w in PICKLEBALL_WORDS)
+
+        if sport_intent == "tennis":
+            return any(w in n_norm or w in s_norm for w in TENNIS_WORDS)
+
+        if sport_intent == "swimming":
+            return any(w in n_norm or w in s_norm for w in SWIMMING_WORDS)
+
+        if sport_intent == "gym":
+            return any(w in n_norm or w in s_norm for w in GYM_WORDS)
+
+        if cat_intent:
+            syns = CATEGORY_SYNONYMS.get(cat_intent, ())
+            return (cat_intent in s_norm) or any(s in n_norm for s in syns) or (q_norm in n_norm)
+
+        return q_norm in n_norm
 
     results: list[dict] = []
     seen_keys: set[str] = set()
@@ -272,67 +353,59 @@ async def search_places_in_area(
         street: str,
         lat: float,
         lng: float,
-        max_radius_km: float = 4.5,
         sub_type: str = "",
         opening_hours: str | None = None,
         cuisine: str | None = None,
     ):
-        dist_km = _haversine_km(center_lat, center_lng, float(lat), float(lng))
-        if dist_km > max_radius_km:
+        f_lat, f_lng = float(lat), float(lng)
+        if not (min_lat <= f_lat <= max_lat and min_lng <= f_lng <= max_lng):
             return
         name_clean = name.strip()
         if not name_clean:
             return
-        key = f"{_normalize_vn(name_clean)}|{round(lat, 3)}|{round(lng, 3)}"
+        if not _is_match(name_clean, sub_type):
+            return
+
+        key = f"{_normalize_vn(name_clean)}|{round(f_lat, 3)}|{round(f_lng, 3)}"
         if key in seen_keys:
             return
         seen_keys.add(key)
 
+        dist_km = _haversine_km(center_lat, center_lng, f_lat, f_lng)
+        matched_cat = sport_intent or cat_intent or "custom"
         results.append({
             "poi_id": poi_id,
             "name": name_clean,
-            "amenity": cat_intent or "custom",
-            "category": cat_intent or "custom",
-            "sub_type": sub_type or cat_intent or "custom",
+            "amenity": matched_cat,
+            "category": matched_cat,
+            "sub_type": sub_type or matched_cat,
             "street": street,
             "address": address or street,
             "opening_hours": opening_hours,
             "cuisine": cuisine,
-            "lat": float(lat),
-            "lng": float(lng),
+            "lat": f_lat,
+            "lng": f_lng,
             "f_sum": 0.0,
             "f_max": 0.0,
             "person_times": [],
             "distance_km": round(dist_km, 2),
         })
 
-    # 1. Tìm trong kho 3,271 POI nội bộ (lọc theo từ khóa / danh mục, lấy trong bán kính 4.5km quanh tâm bản đồ)
+    # 1. Tìm trong kho POI nội bộ giới hạn theo khung nhìn [west, south, east, north] (+15% padding)
     df = engine.df_pois
-    if not hasattr(engine, "_poi_norm_series"):
-        engine._poi_norm_series = (
-            engine.df_pois["name"].astype(str) + " " + engine.df_pois["address"].astype(str)
-        ).apply(_normalize_vn)
-
-    cat_col = df["category"] if "category" in df.columns else df["amenity"]
-    name_mask = engine._poi_norm_series.str.contains(q_norm, regex=False, na=False)
-    if cat_intent:
-        syns = CATEGORY_SYNONYMS.get(cat_intent, ())
-        syn_mask = False
-        for s in syns:
-            syn_mask = syn_mask | engine._poi_norm_series.str.contains(s, regex=False, na=False)
-        sub = df[(cat_col == cat_intent) | name_mask | syn_mask].copy()
-    elif q_norm and q_norm != "all":
-        sub = df[name_mask].copy()
-    else:
-        sub = df.copy()
+    box_mask = (
+        (df["lat"] >= min_lat) & (df["lat"] <= max_lat) &
+        (df["lng"] >= min_lng) & (df["lng"] <= max_lng)
+    )
+    sub = df[box_mask].copy()
 
     if not sub.empty:
         sub["_dist_km"] = np.hypot(
             (sub["lat"] - center_lat) * 111.0,
             (sub["lng"] - center_lng) * 109.0,
         )
-        sub = sub[sub["_dist_km"] <= 4.5].sort_values("_dist_km")
-        for _, row in sub.head(limit).iterrows():
+        sub = sub.sort_values("_dist_km")
+        for _, row in sub.iterrows():
             oh = str(row.get("opening_hours", ""))
             cu = str(row.get("cuisine", ""))
             _push_place(
@@ -342,20 +415,18 @@ async def search_places_in_area(
                 street=str(row.get("street") or ""),
                 lat=float(row["lat"]),
                 lng=float(row["lng"]),
-                max_radius_km=4.5,
                 sub_type=str(row.get("sub_type") or row.get("amenity") or ""),
                 opening_hours=None if oh in ("", "nan", "None") else oh,
                 cuisine=None if cu in ("", "nan", "None") else cu,
             )
 
-    # 2. Gộp thêm kết quả từ geocode_search (forward_geocode) nằm trong bán kính khu vực đang xem
+    # 2. Gộp thêm kết quả từ geocode_search (forward_geocode) nếu trong khung nhìn
     idx_counter = 100
     try:
         geo_hits = await forward_geocode(q_clean, engine, focus_lat=center_lat, focus_lng=center_lng)
         for g in geo_hits:
             g_lat, g_lng = float(g["lat"]), float(g["lng"])
-            dist_km = _haversine_km(center_lat, center_lng, g_lat, g_lng)
-            if dist_km <= 4.5:
+            if min_lat <= g_lat <= max_lat and min_lng <= g_lng <= max_lng:
                 label_parts = g.get("label", "").split(" · ")
                 p_name = label_parts[0].strip()
                 p_addr = label_parts[1].strip() if len(label_parts) > 1 else g.get("label", "")
@@ -370,31 +441,32 @@ async def search_places_in_area(
                     street=p_addr or engine.get_nearest_street_label(g_lat, g_lng),
                     lat=g_lat,
                     lng=g_lng,
-                    max_radius_km=4.5,
-                    sub_type=g.get("category") or cat_intent or "custom",
+                    sub_type=g.get("category") or sport_intent or cat_intent or "custom",
                 )
     except Exception:
         pass
 
-    # 3. Bổ sung thêm từ ArcGIS & Photon xếp hạng theo độ gần tâm bản đồ (bán kính 4.5km)
-    if len(results) < 10 and q_norm and q_norm != "all":
+    # 3. Bổ sung thêm từ ArcGIS & Photon nếu chưa đủ kết quả trong khung nhìn
+    if len(results) < limit and q_norm and q_norm != "all":
         area_ctx = await reverse_geocode(center_lat, center_lng, engine)
         district = area_ctx.split(",")[-1].strip() if "," in area_ctx else "Hồ Chí Minh"
-        wide_extent = f"{center_lng - 0.045},{center_lat - 0.045},{center_lng + 0.045},{center_lat + 0.045}"
+        extent_str = f"{min_lng},{min_lat},{max_lng},{max_lat}"
 
-        alt_query = "sân bóng" if cat_intent == "sports" else q_clean
+        alt_query = "sân bóng" if sport_intent == "football" else q_clean
         async with httpx.AsyncClient(headers=HEADERS) as client:
             c1, c2, photon_feats = await asyncio.gather(
-                _query_arcgis_candidates(client, f"{q_clean}, {district}, Hồ Chí Minh", center_lat, center_lng, wide_extent),
-                _query_arcgis_candidates(client, f"{alt_query}, Hồ Chí Minh", center_lat, center_lng, wide_extent),
+                _query_arcgis_candidates(client, f"{q_clean}, {district}, Hồ Chí Minh", center_lat, center_lng, extent_str),
+                _query_arcgis_candidates(client, f"{alt_query}, Hồ Chí Minh", center_lat, center_lng, extent_str),
                 _query_photon_candidates(client, f"{alt_query} {district}", center_lat, center_lng),
             )
 
-        idx_counter = 100
         for cand in [*c1, *c2]:
             loc = cand.get("location", {})
             lat, lng = loc.get("y"), loc.get("x")
             if lat is None or lng is None:
+                continue
+            f_lat, f_lng = float(lat), float(lng)
+            if not (min_lat <= f_lat <= max_lat and min_lng <= f_lng <= max_lng):
                 continue
             attrs = cand.get("attributes", {})
             full_addr = (
@@ -404,16 +476,15 @@ async def search_places_in_area(
                 .replace(", Việt Nam", "")
             )
             place_name = (attrs.get("PlaceName") or full_addr.split(",")[0]).strip()
-            street_label = engine.get_nearest_street_label(float(lat), float(lng))
+            street_label = engine.get_nearest_street_label(f_lat, f_lng)
             _push_place(
                 poi_id=-idx_counter,
                 name=place_name,
                 address=full_addr or street_label,
                 street=street_label,
-                lat=float(lat),
-                lng=float(lng),
-                max_radius_km=4.5,
-                sub_type=attrs.get("Type") or cat_intent or "custom",
+                lat=f_lat,
+                lng=f_lng,
+                sub_type=attrs.get("Type") or sport_intent or cat_intent or "custom",
             )
             idx_counter += 1
 
@@ -422,23 +493,37 @@ async def search_places_in_area(
             coords = feat.get("geometry", {}).get("coordinates", [])
             if len(coords) < 2:
                 continue
+            f_lat, f_lng = float(coords[1]), float(coords[0])
+            if not (min_lat <= f_lat <= max_lat and min_lng <= f_lng <= max_lng):
+                continue
             p_name = props.get("name")
             if not p_name:
                 continue
-            p_street = props.get("street") or engine.get_nearest_street_label(coords[1], coords[0])
+            p_street = props.get("street") or engine.get_nearest_street_label(f_lat, f_lng)
             p_dist = props.get("district") or district
             _push_place(
                 poi_id=-idx_counter,
                 name=str(p_name),
                 address=f"{p_street}, {p_dist}",
                 street=str(p_street),
-                lat=float(coords[1]),
-                lng=float(coords[0]),
-                max_radius_km=4.5,
+                lat=f_lat,
+                lng=f_lng,
+                sub_type=sport_intent or cat_intent or "custom",
             )
             idx_counter += 1
 
-    results.sort(key=lambda x: x.get("distance_km", 99.0))
+    # Ưu tiên kết quả có tên khớp rõ ràng sân bóng / môn thể thao lên đầu, sau đó theo khoảng cách
+    def _sort_key(place: dict):
+        p_name_norm = _normalize_vn(place.get("name", ""))
+        if sport_intent == "football":
+            has_name = 0 if any(w in p_name_norm for w in FOOTBALL_MATCH_WORDS) else 1
+        elif sport_intent:
+            has_name = 0 if q_norm in p_name_norm else 1
+        else:
+            has_name = 0 if q_norm in p_name_norm else 1
+        return (has_name, place.get("distance_km", 99.0))
+
+    results.sort(key=_sort_key)
     return results[:limit]
 
 async def reverse_geocode(lat: float, lng: float, engine: GraphEngine) -> str:
