@@ -32,7 +32,7 @@ export function PoiList({ pois, selectedPoiId, onSelectPoi }: PoiListProps) {
           <div
             key={poi.poi_id}
             onClick={() => onSelectPoi(poi)}
-            className={`p-3 rounded-lg border cursor-pointer transition ${
+            className={`p-3 rounded-md border cursor-pointer transition ${
               isSelected
                 ? "bg-zinc-800/90 border-sky-500/70"
                 : "bg-zinc-950/60 border-zinc-800/90 hover:border-zinc-700 hover:bg-zinc-900"

@@ -67,11 +67,13 @@ export function MeetingMap({
 
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  topPoisRef.current = topPois;
-  onSelectPoiRef.current = onSelectPoi;
-  onBoundsChangeRef.current = onBoundsChange;
-  pickingIdxRef.current = pickingMemberIdx;
-  onMapPickRef.current = onMapPickLocation;
+  useEffect(() => {
+    topPoisRef.current = topPois;
+    onSelectPoiRef.current = onSelectPoi;
+    onBoundsChangeRef.current = onBoundsChange;
+    pickingIdxRef.current = pickingMemberIdx;
+    onMapPickRef.current = onMapPickLocation;
+  });
 
   const setupMapLayers = useCallback((map: maplibregl.Map) => {
     // 1. Vùng bán kính 450m quanh tâm khu vực hẹn

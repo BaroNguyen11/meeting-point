@@ -40,7 +40,7 @@ export function FilterBar({
             <button
               key={tab.id}
               onClick={() => onChangeAmenity(tab.id)}
-              className={`py-1.5 px-2.5 rounded-lg text-[11px] font-medium flex items-center gap-1 transition ${
+              className={`py-1.5 px-2.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition ${
                 active
                   ? "bg-white text-zinc-950 font-semibold shadow-sm"
                   : "bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
@@ -68,13 +68,13 @@ export function FilterBar({
             step="0.1"
             value={alpha}
             onChange={(e) => onChangeAlpha(parseFloat(e.target.value))}
-            className="w-full accent-sky-400 h-1 bg-zinc-800 rounded-lg cursor-pointer"
+            className="w-full accent-sky-400 h-1 bg-zinc-800 rounded-md cursor-pointer"
           />
         </div>
 
         <button
           onClick={onToggleRushHour}
-          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium border shrink-0 flex items-center gap-1.5 transition ${
+          className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium border shrink-0 flex items-center gap-1.5 transition ${
             isRushHour
               ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
               : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"

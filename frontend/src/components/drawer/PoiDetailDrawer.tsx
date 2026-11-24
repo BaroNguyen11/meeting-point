@@ -87,7 +87,7 @@ export function PoiDetailDrawer({ poi, enrichment, isLoading, onClose }: PoiDeta
       <div className="relative p-5 bg-zinc-950 border-b border-zinc-800">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
+          className="absolute top-4 right-4 p-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
         >
           <X className="w-4 h-4" />
         </button>
@@ -177,7 +177,7 @@ export function PoiDetailDrawer({ poi, enrichment, isLoading, onClose }: PoiDeta
                 {localEnrichment.review_snippets.map((snip, i) => (
                   <p key={i} className="text-[11px] text-zinc-400 leading-relaxed flex items-start gap-1.5">
                     <MessageSquareQuote className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-0.5" />
-                    <span className="line-clamp-2">"{snip}"</span>
+                    <span className="line-clamp-2">&quot;{snip}&quot;</span>
                   </p>
                 ))}
               </div>
@@ -195,7 +195,7 @@ export function PoiDetailDrawer({ poi, enrichment, isLoading, onClose }: PoiDeta
             {poi.person_times?.map((pt, i) => (
               <div
                 key={i}
-                className="bg-zinc-950 border border-zinc-800/90 rounded-lg px-3 py-2 flex items-center justify-between"
+                className="bg-zinc-950 border border-zinc-800/90 rounded-md px-3 py-2 flex items-center justify-between"
               >
                 <div className="flex items-center gap-2">
                   <span
@@ -285,7 +285,7 @@ export function PoiDetailDrawer({ poi, enrichment, isLoading, onClose }: PoiDeta
                   </button>
                 </div>
               </div>
-              <div className="w-full h-[460px] bg-black">
+              <div className="w-full h-115 bg-black">
                 <iframe
                   src={playingVideo.embed_url}
                   className="w-full h-full border-0"
@@ -309,7 +309,7 @@ export function PoiDetailDrawer({ poi, enrichment, isLoading, onClose }: PoiDeta
                   <div
                     key={vid.video_id}
                     onClick={() => setPlayingVideo(vid)}
-                    className="relative aspect-[9/16] rounded-md overflow-hidden bg-zinc-950 border border-zinc-800 hover:border-sky-500/70 cursor-pointer group"
+                    className="relative aspect-9/16 rounded-md overflow-hidden bg-zinc-950 border border-zinc-800 hover:border-sky-500/70 cursor-pointer group"
                   >
                     {vid.thumbnail ? (
                       <img
@@ -323,7 +323,7 @@ export function PoiDetailDrawer({ poi, enrichment, isLoading, onClose }: PoiDeta
                       </div>
                     )}
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent" />
 
                     <div className="absolute top-2 left-2">
                       <span
@@ -364,7 +364,7 @@ export function PoiDetailDrawer({ poi, enrichment, isLoading, onClose }: PoiDeta
                 href={tiktokSearchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2 px-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition"
+                className="w-full py-2 px-3 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition"
               >
                 Tìm review trên TikTok <ExternalLink className="w-3.5 h-3.5 text-rose-400" />
               </a>

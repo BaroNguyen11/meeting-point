@@ -85,7 +85,15 @@ export function ZoneHeader({
   }, [mapQuery, mapBounds?.centerLat, mapBounds?.centerLng]);
 
   const triggerAreaSearch = async (queryText: string) => {
-    if (!mapBounds || !queryText.trim()) return;
+    if (!queryText.trim()) return;
+    const bounds = mapBounds ?? {
+      west: 106.65,
+      south: 10.74,
+      east: 106.74,
+      north: 10.82,
+      centerLat: 10.7769,
+      centerLng: 106.7009,
+    };
     setIsSearchingArea(true);
     setActiveAreaQuery(queryText);
     setMapResults([]);
@@ -93,10 +101,10 @@ export function ZoneHeader({
     try {
       const places = await searchPlacesInArea({
         query: queryText,
-        west: mapBounds.west,
-        south: mapBounds.south,
-        east: mapBounds.east,
-        north: mapBounds.north,
+        west: bounds.west,
+        south: bounds.south,
+        east: bounds.east,
+        north: bounds.north,
       });
       onSetSearchPins(places, queryText);
     } finally {
@@ -111,8 +119,7 @@ export function ZoneHeader({
   };
 
   return (
-    <div className="absolute top-4 left-[416p
-    x] right-4 z-20 flex flex-wrap items-start justify-between gap-2 pointer-events-none">
+    <div className="absolute top-4 left-[416px] right-4 z-20 flex flex-wrap items-start justify-between gap-2 pointer-events-none">
       {/* CỤM TRÁI: THÔNG TIN TÂM ĐIỂM HẸN */}
       <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
         {optimum && (
@@ -120,7 +127,7 @@ export function ZoneHeader({
             onClick={onFocusZone}
             className="cursor-pointer bg-zinc-900/95 hover:bg-zinc-800/95 backdrop-blur-md border border-zinc-700/90 rounded-md px-3.5 py-2 shadow-xl flex items-center gap-3 transition"
           >
-            <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
+            <div className="w-8 h-8 rounded-md bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
               <Target className="w-4 h-4" />
             </div>
             <div>
@@ -252,7 +259,7 @@ export function ZoneHeader({
               className="w-full text-left px-3 py-2 text-xs font-semibold text-red-300 bg-red-500/10 hover:bg-red-500/20 flex items-center gap-2 border-b border-zinc-800"
             >
               <Radar className="w-3.5 h-3.5 text-red-400 shrink-0" />
-              <span>Hiện tất cả "{mapQuery}" trên vùng bản đồ này</span>
+              <span>Hiện tất cả &quot;{mapQuery}&quot; trên vùng bản đồ này</span>
             </button>
 
             {mapResults.map((sug, i) => (
@@ -294,7 +301,7 @@ export function ZoneHeader({
                 onTestDestination(selectedPlace);
                 setSelectedPlace(null);
               }}
-              className="w-full py-1.5 px-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-zinc-950 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+              className="w-full py-1.5 px-2.5 rounded-md bg-sky-500 hover:bg-sky-400 text-zinc-950 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
             >
               <Navigation className="w-3.5 h-3.5" />
               Thử hẹn tại điểm này

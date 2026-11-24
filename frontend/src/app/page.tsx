@@ -125,14 +125,14 @@ export default function MeetingPointApp() {
           <button
             onClick={addMember}
             disabled={people.length >= 8}
-            className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1 disabled:opacity-40 transition"
+            className="px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1 disabled:opacity-40 transition"
           >
             <Plus className="w-3.5 h-3.5" /> Thêm người
           </button>
         </div>
 
         {people.length < 2 && (
-          <div className="mx-3 mt-3 p-3 rounded-lg bg-zinc-800/70 border border-zinc-700/80 text-xs text-zinc-300 flex items-center justify-between gap-2">
+          <div className="mx-3 mt-3 p-3 rounded-md bg-zinc-800/70 border border-zinc-700/80 text-xs text-zinc-300 flex items-center justify-between gap-2">
             <span>
               {people.length === 0
                 ? "Chưa có thành viên. Thêm ít nhất 2 người để tìm điểm hẹn."

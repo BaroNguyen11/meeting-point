@@ -48,17 +48,6 @@ async def api_geocode(
     return {"results": await forward_geocode(q, engine, focus_lat=lat, focus_lng=lng)}
 
 
-@router.get("/search-area")
-def api_search_area(
-    q: str = Query(..., min_length=1),
-    west: float = Query(...),
-    south: float = Query(...),
-    east: float = Query(...),
-    north: float = Query(...),
-):
-    return {"places": search_places_in_area(engine, q, west, south, east, north)}
-
-
 @router.get("/reverse-geocode")
 async def api_reverse_geocode(lat: float, lng: float):
     return {"address": await reverse_geocode(lat, lng, engine)}

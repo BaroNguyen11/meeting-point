@@ -36,8 +36,8 @@ HCMC_LANDMARKS = [
 
 CATEGORY_SYNONYMS: dict[str, tuple[str, ...]] = {
     "sports": (
-        "san bong", "san da banh", "da banh", "bong da", "san co nhan tao",
-        "cau long", "pickleball", "tennis", "bong ro", "the thao", "gym", "ho boi",
+        "san bong da", "san bong", "san da banh", "da banh", "bong da", "san banh",
+        "san co nhan tao", "cau long", "pickleball", "tennis", "bong ro", "the thao", "gym", "ho boi",
     ),
     "cafe": (
         "ca phe", "cafe", "coffee", "tra sua", "tiem banh", "matcha", "nuoc ep",
@@ -281,7 +281,7 @@ async def search_places_in_area(
         if dist_km > max_radius_km:
             return
         name_clean = name.strip()
-        if not name_clean or _normalize_vn(name_clean) == q_norm:
+        if not name_clean:
             return
         key = f"{_normalize_vn(name_clean)}|{round(lat, 3)}|{round(lng, 3)}"
         if key in seen_keys:
@@ -314,11 +314,15 @@ async def search_places_in_area(
         ).apply(_normalize_vn)
 
     cat_col = df["category"] if "category" in df.columns else df["amenity"]
+    name_mask = engine._poi_norm_series.str.contains(q_norm, regex=False, na=False)
     if cat_intent:
-        mask = (cat_col == cat_intent) | engine._poi_norm_series.str.contains(q_norm, regex=False, na=False)
-        sub = df[mask].copy()
+        syns = CATEGORY_SYNONYMS.get(cat_intent, ())
+        syn_mask = False
+        for s in syns:
+            syn_mask = syn_mask | engine._poi_norm_series.str.contains(s, regex=False, na=False)
+        sub = df[(cat_col == cat_intent) | name_mask | syn_mask].copy()
     elif q_norm and q_norm != "all":
-        sub = df[engine._poi_norm_series.str.contains(q_norm, regex=False, na=False)].copy()
+        sub = df[name_mask].copy()
     else:
         sub = df.copy()
 
@@ -344,7 +348,35 @@ async def search_places_in_area(
                 cuisine=None if cu in ("", "nan", "None") else cu,
             )
 
-    # 2. Bổ sung thêm từ ArcGIS & Photon xếp hạng theo độ gần tâm bản đồ (bán kính 4.5km)
+    # 2. Gộp thêm kết quả từ geocode_search (forward_geocode) nằm trong bán kính khu vực đang xem
+    idx_counter = 100
+    try:
+        geo_hits = await forward_geocode(q_clean, engine, focus_lat=center_lat, focus_lng=center_lng)
+        for g in geo_hits:
+            g_lat, g_lng = float(g["lat"]), float(g["lng"])
+            dist_km = _haversine_km(center_lat, center_lng, g_lat, g_lng)
+            if dist_km <= 4.5:
+                label_parts = g.get("label", "").split(" · ")
+                p_name = label_parts[0].strip()
+                p_addr = label_parts[1].strip() if len(label_parts) > 1 else g.get("label", "")
+                p_id = g.get("poi_id")
+                if p_id is None:
+                    p_id = -idx_counter
+                    idx_counter += 1
+                _push_place(
+                    poi_id=p_id,
+                    name=p_name,
+                    address=p_addr,
+                    street=p_addr or engine.get_nearest_street_label(g_lat, g_lng),
+                    lat=g_lat,
+                    lng=g_lng,
+                    max_radius_km=4.5,
+                    sub_type=g.get("category") or cat_intent or "custom",
+                )
+    except Exception:
+        pass
+
+    # 3. Bổ sung thêm từ ArcGIS & Photon xếp hạng theo độ gần tâm bản đồ (bán kính 4.5km)
     if len(results) < 10 and q_norm and q_norm != "all":
         area_ctx = await reverse_geocode(center_lat, center_lng, engine)
         district = area_ctx.split(",")[-1].strip() if "," in area_ctx else "Hồ Chí Minh"

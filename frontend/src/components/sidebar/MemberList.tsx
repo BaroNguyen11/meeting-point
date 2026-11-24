@@ -48,7 +48,7 @@ export function MemberList({
   return (
     <div className="p-3 border-b border-zinc-800 space-y-2 max-h-61.25 overflow-y-auto">
       {pickingMemberIdx !== null && (
-        <div className="px-2.5 py-1.5 rounded-lg bg-sky-500/15 border border-sky-500/40 text-[11px] text-sky-300 flex items-center justify-between">
+        <div className="px-2.5 py-1.5 rounded-md bg-sky-500/15 border border-sky-500/40 text-[11px] text-sky-300 flex items-center justify-between">
           <span>Click lên bản đồ để đặt vị trí cho {people[pickingMemberIdx]?.name}</span>
           <button
             onClick={() => onStartPickOnMap(null)}
@@ -67,7 +67,7 @@ export function MemberList({
         return (
           <div
             key={person.id}
-            className={`relative bg-zinc-950/80 border rounded-lg p-2 transition ${
+            className={`relative bg-zinc-950/80 border rounded-md p-2 transition ${
               isPicking ? "border-sky-500" : "border-zinc-800/90"
             }`}
           >
@@ -117,7 +117,7 @@ export function MemberList({
             </div>
 
             {activeSearchIdx === idx && (suggestions.length > 0 || isSearching) && (
-              <div className="mt-1.5 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-30">
+              <div className="mt-1.5 bg-zinc-900 border border-zinc-700 rounded-md shadow-xl overflow-hidden z-30">
                 {isSearching && (
                   <div className="px-3 py-2 text-[11px] text-zinc-400">Đang tìm địa chỉ...</div>
                 )}
