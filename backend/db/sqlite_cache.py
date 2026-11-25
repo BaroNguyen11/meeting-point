@@ -83,17 +83,23 @@ class SQLiteStorage:
                 ),
             )
 
-    def create_room(self, payload: dict) -> str:
+    def _cleanup_expired_rooms(self, conn: sqlite3.Connection, ttl_seconds: int = 6 * 3600) -> None:
+        cutoff = time.time() - ttl_seconds
+        conn.execute("DELETE FROM shared_rooms WHERE created_at < ?", (cutoff,))
+
+    def create_room(self, payload: dict, ttl_seconds: int = 6 * 3600) -> str:
         room_id = secrets.token_urlsafe(6)
         with self._connect() as conn:
+            self._cleanup_expired_rooms(conn, ttl_seconds)
             conn.execute(
                 "INSERT INTO shared_rooms (room_id, payload_json, created_at) VALUES (?, ?, ?)",
                 (room_id, json.dumps(payload, ensure_ascii=False), time.time()),
             )
         return room_id
 
-    def get_room(self, room_id: str) -> dict | None:
+    def get_room(self, room_id: str, ttl_seconds: int = 6 * 3600) -> dict | None:
         with self._connect() as conn:
+            self._cleanup_expired_rooms(conn, ttl_seconds)
             row = conn.execute(
                 "SELECT payload_json FROM shared_rooms WHERE room_id = ?", (room_id,)
             ).fetchone()

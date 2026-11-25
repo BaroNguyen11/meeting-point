@@ -515,13 +515,21 @@ async def search_places_in_area(
     # Ưu tiên kết quả có tên khớp rõ ràng sân bóng / môn thể thao lên đầu, sau đó theo khoảng cách
     def _sort_key(place: dict):
         p_name_norm = _normalize_vn(place.get("name", ""))
+        p_sub_norm = _normalize_vn(place.get("sub_type", ""))
         if sport_intent == "football":
-            has_name = 0 if any(w in p_name_norm for w in FOOTBALL_MATCH_WORDS) else 1
+            # Tier 0: Tên chứa từ khóa sân bóng đá trực tiếp (\bsan bong da\b, \bsan bong\b, \bsan banh\b, futsal, soccer...)
+            primary_football_words = ("san bong da", "san bong", "san banh", "da banh", "bong da", "futsal", "soccer", "football", "co nhan tao")
+            if any(w in p_name_norm for w in primary_football_words):
+                prio = 0
+            elif any(w in p_sub_norm for w in primary_football_words) or p_sub_norm in ("pitch", "stadium"):
+                prio = 1
+            else:
+                prio = 2
         elif sport_intent:
-            has_name = 0 if q_norm in p_name_norm else 1
+            prio = 0 if q_norm in p_name_norm else 1
         else:
-            has_name = 0 if q_norm in p_name_norm else 1
-        return (has_name, place.get("distance_km", 99.0))
+            prio = 0 if q_norm in p_name_norm else 1
+        return (prio, place.get("distance_km", 99.0))
 
     results.sort(key=_sort_key)
     return results[:limit]

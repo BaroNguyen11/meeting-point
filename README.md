@@ -6,14 +6,15 @@ Hệ thống định tuyến và đề xuất điểm hẹn nhóm tối ưu theo
 
 ## 1. Tính năng cốt lõi
 
-* **Định tuyến đa nguồn trên đồ thị đô thị thực tế:** Tính toán đường đi ngắn nhất cho nhóm từ $2$ đến $8$ thành viên trên đồ thị có hướng gồm **25.554 nút giao** và **59.877 cạnh đường** bao phủ vùng lõi nội thành TP.HCM (`10.7250°N – 10.8450°N`, `106.6200°E – 106.7600°E`).
+* **Định tuyến đa nguồn trên đồ thị đô thị thực tế:** Tính toán đường đi ngắn nhất cho nhóm từ $2$ đến $8$ thành viên trên đồ thị có hướng gồm **157.854 nút giao** và **364.261 cạnh đường** bao phủ toàn diện mạng lưới giao thông nội thành TP.HCM (lưới 5x5 hoàn chỉnh từ Gò Vấp, Bình Thạnh đến Quận 7, Nhà Bè, Thủ Đức, Bình Tân).
 * **Cân bằng Hiệu quả – Công bằng (Pareto Optimization):** Điều chỉnh linh hoạt tham số $\alpha \in [0, 1]$ để chuyển đổi giữa mục tiêu tối thiểu hóa tổng thời gian cả nhóm ($\alpha = 0$) và tối thiểu hóa thời gian của người di chuyển xa nhất ($\alpha = 1$).
 * **Nhận thức khung giờ cao điểm (Time-Dependent Routing):** Mô phỏng hệ số suy giảm vận tốc theo cấp đường vào khung giờ tan tầm (`17:30`) so với giờ thông thoáng.
 * **Mô phỏng sóng lan truyền đồng bộ (Multi-source Wavefront):** Trực quan hóa quá trình loang đồng thời từ vị trí từng thành viên trên bản đồ WebGL và cắt tỉa trung bình **84.6% – 94.4%** không gian tìm kiếm dư thừa.
 * **Dữ liệu địa điểm & trải nghiệm nhóm hoàn chỉnh:**
-  * **3.262 địa điểm** (cà phê, quán ăn, nhà hàng) được làm giàu tên đường thật thông qua nối không gian (`gpd.sjoin_nearest` trên hệ chiếu `EPSG:32648`).
+  * **4.599 địa điểm** phân bố đủ 4 nhóm phân loại (`cafe`, `restaurant`, `entertainment`, `sports`) được làm giàu tên đường thật thông qua nối không gian (`gpd.sjoin_nearest` trên hệ chiếu `EPSG:32648`).
+  * Bộ lọc chuyên biệt cho từng môn thể thao (bóng đá, cầu lông, pickleball, tennis, bơi lội, gym) kèm cơ chế khử node rác OpenStreetMap.
   * Tự động dịch ngược tọa độ (*Reverse Geocoding*) khi kéo thả ghim thành viên trên bản đồ.
-  * Tích hợp tra cứu video review YouTube Data API v3 / Google Places (kèm SQLite cache) và tạo liên kết chia sẻ phòng họp nhóm (`?room=<id>`).
+  * Tích hợp tra cứu video review YouTube Data API v3 / Google Places / TikTok (kèm SQLite cache) và tạo liên kết chia sẻ phòng họp nhóm (`?room=<id>`).
 
 ---
 
@@ -22,9 +23,9 @@ Hệ thống định tuyến và đề xuất điểm hẹn nhóm tối ưu theo
 ```mermaid
 flowchart LR
     subgraph Offline["Data Pipeline (Offline)"]
-        OSM["OpenStreetMap<br/>(9-Tile Grid)"] --> BG["scripts/build_graph.py<br/>OSMnx + GeoPandas"]
-        BG --> NPZ["data/hcm_metro_moto_*.npz<br/>(25,554 nodes / 59,877 edges)"]
-        BG --> CSV["data/hcm_metro_pois.csv<br/>(3,262 POIs)"]
+        OSM["OpenStreetMap<br/>(5x5 Grid)"] --> BG["scripts/build_graph.py<br/>OSMnx + GeoPandas"]
+        BG --> NPZ["data/hcm_metro_moto_*.npz<br/>(157,854 nodes / 364,261 edges)"]
+        BG --> CSV["data/hcm_metro_pois.csv<br/>(4,599 POIs)"]
     end
 
     subgraph Backend["FastAPI Backend (Layered)"]
@@ -171,9 +172,45 @@ Truy cập ứng dụng tại **`http://localhost:3000`**.
 | `GET` | `/api/health` | Kiểm tra trạng thái engine, số đỉnh đồ thị và số lượng POI |
 | `POST` | `/api/solve` | Tính điểm hẹn tối ưu, tuyến đường nhóm và danh sách Top 25 địa điểm |
 | `POST` | `/api/poi-routes` | Tính tuyến đường chi tiết từ từng thành viên tới một địa điểm cụ thể |
-| `POST` | `/api/wavefront` | Xuất dữ liệu GeoJSON lan truyền đồng bộ theo mốc thời gian $t$ |
-| `GET` | `/api/geocode?q=...` | Tìm kiếm tự động địa chỉ & địa điểm tại TP.HCM |
+| `POST` | `/api/custom-route` | Tính tuyến đường chi tiết tới địa điểm tự chọn hoặc ghim tìm kiếm |
+| `GET` | `/api/search-area` | Tìm kiếm địa điểm theo môn thể thao & khu vực khung nhìn bản đồ |
+| `GET` | `/api/geocode?q=...` | Tìm kiếm tự động địa chỉ & địa điểm tại TP.HCM (ArcGIS / Photon) |
 | `GET` | `/api/reverse-geocode` | Dịch ngược tọa độ `(lat, lng)` thành tên đường thật khi kéo ghim |
-| `GET` | `/api/pois/{poi_id}/reviews` | Lấy video review YouTube & thông tin đánh giá (có SQLite cache) |
-| `POST` | `/api/rooms` | Lưu cấu hình nhóm hiện tại và trả về mã phòng chia sẻ |
+| `GET` | `/api/pois/{poi_id}/reviews` | Lấy thông tin đánh giá & video review YouTube / TikTok (có SQLite cache) |
+| `GET` | `/api/custom-reviews` | Lấy dữ liệu đánh giá & video review cho địa điểm tự do |
+| `POST` | `/api/attach-tiktok` | Gắn liên kết video TikTok review thủ công cho địa điểm |
+| `POST` | `/api/rooms` | Lưu cấu hình nhóm hiện tại và trả về mã phòng chia sẻ (TTL 6 giờ) |
 | `GET` | `/api/rooms/{room_id}` | Khôi phục trạng thái nhóm từ liên kết chia sẻ |
+
+---
+
+## 7. Hướng dẫn Deploy Production
+
+### 7.1. Deploy Backend (Railway / Render)
+1. **Thiết lập dịch vụ Web Service:**
+   * **Root Directory:** Thư mục gốc repo (`.`)
+   * **Build Command:** `pip install -r requirements.txt` (hoặc `pip install fastapi uvicorn httpx numpy pandas scipy`)
+   * **Start Command:** `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+2. **Biến môi trường (Environment Variables):**
+   ```ini
+   GRAPH_ADJ_PATH=data/hcm_metro_moto_adj.npz
+   GRAPH_META_PATH=data/hcm_metro_moto_meta.npz
+   POI_CSV_PATH=data/hcm_metro_pois.csv
+   SQLITE_DB_PATH=data/meetpoint.db
+   CORS_ORIGINS=*
+   # Tùy chọn (để kích hoạt làm giàu video review):
+   YOUTUBE_API_KEY=<your-youtube-api-key>
+   GOOGLE_PLACES_API_KEY=<your-google-places-key>
+   ```
+
+### 7.2. Deploy Frontend (Vercel)
+1. **Import Git repository vào Vercel:**
+   * **Framework Preset:** `Next.js`
+   * **Root Directory:** `frontend`
+   * **Build Command:** `next build` (hoặc `npm run build`)
+   * **Output Directory:** `.next`
+2. **Biến môi trường (Environment Variables):**
+   ```ini
+   NEXT_PUBLIC_API_BASE=https://<your-backend-railway-render-domain>
+   ```
+3. Nhấn **Deploy**. Frontend sẽ tự động build production và kết nối tới Backend API.

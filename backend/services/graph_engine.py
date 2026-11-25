@@ -153,6 +153,31 @@ class GraphEngine:
             "lng": float(row["lng"]),
         }
 
+    def compute_wavefront_edges(
+        self,
+        people: list[dict],
+        depart_hour: float | None = None,
+        max_minutes: float = 35.0,
+    ) -> dict:
+        """Đo lường không gian tìm kiếm (tổng số cạnh được duyệt) của mặt sóng Wavefront."""
+        sources = [int(self.tree.query([p["lat"], p["lng"]])[1]) for p in people]
+        limit_sec = max_minutes * 60.0
+        T_sec, _ = self._run_multi_source_dijkstra(sources, depart_hour, limit_sec=limit_sec)
+
+        total_edges = 0
+        total_nodes = 0
+        degrees = np.diff(self.adj_matrix.indptr)
+        for i in range(len(sources)):
+            visited_mask = np.isfinite(T_sec[i])
+            total_nodes += int(np.count_nonzero(visited_mask))
+            total_edges += int(np.sum(degrees[visited_mask]))
+
+        return {
+            "total_edges": total_edges,
+            "total_nodes": total_nodes,
+            "sources": sources,
+        }
+
     def solve(
         self,
         people: list[dict],
