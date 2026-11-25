@@ -26,7 +26,7 @@ export function PoiList({ pois, selectedPoiId, onSelectPoi }: PoiListProps) {
     });
   }, [selectedPoiId,pois]);
   return (
-    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+    <div className="md:flex-1 md:overflow-y-auto max-md:overflow-visible max-md:pb-10 p-3 space-y-2">
       <div className="text-[11px] font-medium text-zinc-400 px-1 flex justify-between">
         <span>Địa điểm phù hợp nhất</span>
         <span className="tabular-nums">{pois.length} kết quả</span>

@@ -251,6 +251,18 @@ export function MeetingMap({
     }
   }, []);
 
+  const getMapPadding = (desktopPadding: { left?: number; right?: number; top?: number; bottom?: number }): maplibregl.PaddingOptions => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      return { top: 90, bottom: 150, left: 16, right: 16 };
+    }
+    return {
+      top: desktopPadding.top ?? 0,
+      bottom: desktopPadding.bottom ?? 0,
+      left: desktopPadding.left ?? 0,
+      right: desktopPadding.right ?? 0,
+    };
+  };
+
   // Khởi tạo MapLibre lần đầu
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -371,7 +383,7 @@ export function MeetingMap({
           center: [target.lng, target.lat],
           zoom: 15,
           duration: 650,
-          padding: { left: 380, right: 400 },
+          padding: getMapPadding({ left: 380, right: 400 }),
         });
       }
     }
@@ -456,7 +468,7 @@ export function MeetingMap({
       center: [optimum.lng, optimum.lat],
       zoom: 14.3,
       duration: 650,
-      padding: { left: 360, right: 0 },
+      padding: getMapPadding({ left: 360, right: 0 }),
     });
   }, [focusTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -466,7 +478,7 @@ export function MeetingMap({
       center: [flyTarget.lng, flyTarget.lat],
       zoom: flyTarget.zoom || 15.2,
       duration: 650,
-      padding: { left: 360, right: 0 },
+      padding: getMapPadding({ left: 360, right: 0 }),
     });
   }, [flyTarget]);
 

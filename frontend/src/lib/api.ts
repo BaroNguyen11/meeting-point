@@ -8,7 +8,7 @@ import {
   SolveResponse,
 } from "@/types/meeting";
 
-const API_BASE = process.env.API_BASE || "http://127.0.0.1:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
 async function requestJson<T>(url: string, init?: RequestInit, fallbackError = "Lỗi kết nối máy chủ"): Promise<T> {
   let res: Response;

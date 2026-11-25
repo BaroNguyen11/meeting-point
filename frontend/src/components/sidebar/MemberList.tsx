@@ -46,7 +46,7 @@ export function MemberList({
   };
 
   return (
-    <div className="p-3 border-b border-zinc-800 space-y-2 max-h-61.25 overflow-y-auto">
+    <div className="p-3 border-b border-zinc-800 space-y-2 md:max-h-61.25 md:overflow-y-auto max-md:max-h-none max-md:overflow-visible">
       {pickingMemberIdx !== null && (
         <div className="px-2.5 py-1.5 rounded-md bg-sky-500/15 border border-sky-500/40 text-[11px] text-sky-300 flex items-center justify-between">
           <span>Click lên bản đồ để đặt vị trí cho {people[pickingMemberIdx]?.name}</span>

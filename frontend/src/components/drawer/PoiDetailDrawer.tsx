@@ -82,12 +82,17 @@ export function PoiDetailDrawer({ poi, enrichment, isLoading, onClose }: PoiDeta
   };
 
   return (
-    <div className="absolute top-4 right-4 bottom-4 w-105 bg-zinc-900/95 backdrop-blur-md border border-zinc-800 rounded-md shadow-2xl z-30 flex flex-col overflow-hidden">
+    <div className="absolute top-4 right-4 bottom-4 w-105 bg-zinc-900/95 backdrop-blur-md border border-zinc-800 rounded-md shadow-2xl z-50 flex flex-col overflow-hidden max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[80vh] max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:border-t">
+      {/* Mobile Drag Handle */}
+      <div className="md:hidden flex justify-center pt-2.5 pb-1 shrink-0">
+        <div className="w-10 h-1 rounded-full bg-zinc-600" />
+      </div>
+
       {/* HEADER ĐỊA ĐIỂM */}
-      <div className="relative p-5 bg-zinc-950 border-b border-zinc-800">
+      <div className="relative p-4 md:p-5 bg-zinc-950 border-b border-zinc-800 shrink-0">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
+          className="absolute top-3 right-3 md:top-4 md:right-4 p-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
         >
           <X className="w-4 h-4" />
         </button>
@@ -96,21 +101,21 @@ export function PoiDetailDrawer({ poi, enrichment, isLoading, onClose }: PoiDeta
           {catLabel}
           {poi.cuisine ? ` · ${poi.cuisine}` : ""}
         </div>
-        <h2 className="text-lg font-bold text-white pr-8 leading-snug">{poi.name}</h2>
+        <h2 className="text-base md:text-lg font-bold text-white pr-8 leading-snug">{poi.name}</h2>
         <p className="text-xs text-zinc-400 mt-1 flex items-center gap-1.5">
           <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-          {poi.address}
+          <span className="truncate">{poi.address}</span>
         </p>
 
         {poi.opening_hours && (
-          <div className="mt-2.5 text-xs text-zinc-300 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Giờ mở cửa: {poi.opening_hours}</span>
+          <div className="mt-2 text-xs text-zinc-300 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="truncate">Giờ mở cửa: {poi.opening_hours}</span>
           </div>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-5">
+      <div className="flex-1 overflow-y-auto p-3.5 md:p-4 space-y-4 md:space-y-5">
         {/* 1. BẢNG CHỈ SỐ ĐÁNH GIÁ TRỰC QUAN 3 GIÂY */}
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-zinc-950 border border-zinc-800/90 rounded-md p-2.5">

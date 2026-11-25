@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Check,
   MapPin,
@@ -68,6 +68,30 @@ export function ZoneHeader({
   const [selectedPlace, setSelectedPlace] = useState<GeoSuggestion | null>(null);
   const [isSearchingArea, setIsSearchingArea] = useState(false);
 
+  // ---- New UX State ----
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Close dropdown on outside click or Escape
+  useEffect(() => {
+    const handlePointerDown = (e: PointerEvent) => {
+      if (!searchContainerRef.current?.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   useEffect(() => {
     if (mapQuery.trim().length < 2) {
       setMapResults([]);
@@ -119,26 +143,26 @@ export function ZoneHeader({
   };
 
   return (
-    <div className="absolute top-4 left-[416px] right-4 z-20 flex flex-wrap items-start justify-between gap-2 pointer-events-none">
+    <div className="absolute top-4 left-[416px] right-4 z-20 flex flex-wrap items-start justify-between gap-2 pointer-events-none max-md:top-3 max-md:left-3 max-md:right-3 max-md:flex-col">
       {/* CỤM TRÁI: THÔNG TIN TÂM ĐIỂM HẸN */}
-      <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
+      <div className="flex flex-wrap items-center gap-2 pointer-events-auto max-md:order-2 max-md:gap-1.5 max-md:max-w-full">
         {optimum && (
           <div
             onClick={onFocusZone}
-            className="cursor-pointer bg-zinc-900/95 hover:bg-zinc-800/95 backdrop-blur-md border border-zinc-700/90 rounded-md px-3.5 py-2 shadow-xl flex items-center gap-3 transition"
+            className="cursor-pointer bg-zinc-900/95 hover:bg-zinc-800/95 backdrop-blur-md border border-zinc-700/90 rounded-md px-3.5 py-2 shadow-xl flex items-center gap-3 transition max-md:px-2.5 max-md:py-1.5 max-md:gap-2 max-md:shrink-0"
           >
-            <div className="w-8 h-8 rounded-md bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
-              <Target className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-md bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0 max-md:w-7 max-md:h-7">
+              <Target className="w-4 h-4 max-md:w-3.5 max-md:h-3.5" />
             </div>
-            <div>
-              <div className="text-[11px] text-zinc-400 font-medium flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="text-[11px] text-zinc-400 font-medium flex items-center gap-2 max-md:text-[10px] max-md:gap-1.5">
                 <span>Khu vực đề xuất</span>
                 <span className="text-zinc-600">•</span>
-                <span className="text-zinc-300 font-mono tabular-nums">
+                <span className="text-zinc-300 font-mono tabular-nums whitespace-nowrap">
                   Xa nhất {optimum?.f_max}p · Tổng {optimum?.f_sum}p
                 </span>
               </div>
-              <div className="text-xs font-semibold text-white mt-0.5 max-w-60 truncate">
+              <div className="text-xs font-semibold text-white mt-0.5 max-w-60 truncate max-md:max-w-40 sm:max-md:max-w-60">
                 {optimum?.zone_name}
               </div>
             </div>
@@ -148,43 +172,44 @@ export function ZoneHeader({
         {optimum && (
           <button
             onClick={onReplayRoute}
-            className="px-3 py-2.5 rounded-md bg-zinc-900/95 hover:bg-zinc-800 border border-zinc-700/90 text-xs font-medium text-zinc-200 shadow-xl flex items-center gap-1.5 transition tabular-nums"
+            className="px-3 py-2.5 rounded-md bg-zinc-900/95 hover:bg-zinc-800 border border-zinc-700/90 text-xs font-medium text-zinc-200 shadow-xl flex items-center gap-1.5 transition tabular-nums max-md:px-2.5 max-md:py-1.5 max-md:text-[11px] shrink-0 whitespace-nowrap"
           >
-            <Play className="w-3.5 h-3.5 text-sky-400 fill-sky-400" />
-            {isRunning ? `Đang chạy ${elapsedMinutes.toFixed(1)}p` : "Chạy lại"}
+            <Play className="w-3.5 h-3.5 text-sky-400 fill-sky-400 max-md:w-3 max-md:h-3" />
+            <span>{isRunning ? `Đang chạy ${elapsedMinutes.toFixed(1)}p` : "Chạy lại"}</span>
           </button>
         )}
         <button
           onClick={onToggleTheme}
-          className="px-3 py-2.5 rounded-md bg-zinc-900/95 hover:bg-zinc-800 border border-zinc-700/90 text-xs font-medium text-zinc-300 shadow-xl flex items-center gap-1.5 transition"
+          className="px-3 py-2.5 rounded-md bg-zinc-900/95 hover:bg-zinc-800 border border-zinc-700/90 text-xs font-medium text-zinc-300 shadow-xl flex items-center gap-1.5 transition max-md:px-2.5 max-md:py-1.5 max-md:text-[11px] shrink-0 whitespace-nowrap"
         >
           {mapTheme === "dark" ? (
-            <Sun className="w-3.5 h-3.5 text-amber-400" />
+            <Sun className="w-3.5 h-3.5 text-amber-400 max-md:w-3 max-md:h-3" />
           ) : (
-            <Moon className="w-3.5 h-3.5 text-sky-400" />
+            <Moon className="w-3.5 h-3.5 text-sky-400 max-md:w-3 max-md:h-3" />
           )}
-          {mapTheme === "dark" ? "Sáng" : "Tối"}
+          <span>{mapTheme === "dark" ? "Sáng" : "Tối"}</span>
         </button>
 
         {optimum && (
           <button
             onClick={handleCopyLink}
-            className={`px-3 py-2.5 rounded-md border text-xs font-medium shadow-xl flex items-center gap-1.5 transition ${copied
+            className={`px-3 py-2.5 rounded-md border text-xs font-medium shadow-xl flex items-center gap-1.5 transition max-md:px-2.5 max-md:py-1.5 max-md:text-[11px] shrink-0 whitespace-nowrap ${copied
               ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
               : "bg-sky-500 hover:bg-sky-400 border-sky-400 text-zinc-950 font-semibold"
               }`}
           >
-            {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-            {copied ? "Đã chép" : "Chia sẻ"}
+            {copied ? <Check className="w-3.5 h-3.5 max-md:w-3 max-md:h-3" /> : <Share2 className="w-3.5 h-3.5 max-md:w-3 max-md:h-3" />}
+            <span>{copied ? "Đã chép" : "Chia sẻ"}</span>
           </button>
         )}
       </div>
 
       {/* CỤM PHẢI: THANH TÌM KIẾM KIỂU GOOGLE MAPS + CHIPS KHU VỰC */}
-      <div className="relative w-85 pointer-events-auto space-y-1.5">
+      <div ref={searchContainerRef} className="relative w-85 pointer-events-auto space-y-1.5 max-md:w-full max-md:order-1 z-40">
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            setIsDropdownOpen(true);
             triggerAreaSearch(mapQuery);
           }}
           className="bg-zinc-900/95 backdrop-blur-md border border-zinc-700/90 rounded-md px-3 py-2 shadow-xl flex items-center gap-2"
@@ -195,7 +220,9 @@ export function ZoneHeader({
             onChange={(e) => {
               setMapQuery(e.target.value);
               setSelectedPlace(null);
+              setIsDropdownOpen(true);
             }}
+            onFocus={() => setIsDropdownOpen(true)}
             placeholder="Tìm địa chỉ, sân bóng đá, quán quanh đây..."
             className="w-full bg-transparent text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none"
           />
@@ -208,6 +235,7 @@ export function ZoneHeader({
                 setSelectedPlace(null);
                 setActiveAreaQuery(null);
                 onClearSearchPins();
+                setIsDropdownOpen(false);
               }}
               className="text-zinc-500 hover:text-zinc-200"
             >
@@ -217,7 +245,7 @@ export function ZoneHeader({
         </form>
 
         {/* CHIPS TÌM NHANH THEO KHU VỰC ĐANG XEM (GIỐNG GOOGLE MAPS) */}
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1 max-md:flex-nowrap max-md:overflow-x-auto no-scrollbar max-md:py-0.5 max-md:max-w-full">
           {AREA_QUICK_CHIPS.map((chip) => {
             const isActive = activeAreaQuery === chip.query && searchPinsCount > 0;
             return (
@@ -226,9 +254,10 @@ export function ZoneHeader({
                 type="button"
                 onClick={() => {
                   setMapQuery(chip.query);
+                  setIsDropdownOpen(true);
                   triggerAreaSearch(chip.query);
                 }}
-                className={`px-2 py-1 rounded-full text-[11px] font-medium backdrop-blur-md border shadow transition ${isActive
+                className={`px-2 py-1 rounded-full text-[11px] font-medium backdrop-blur-md border shadow transition shrink-0 whitespace-nowrap ${isActive
                   ? "bg-red-500 text-white border-red-400 font-semibold"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 border-zinc-700/80"
                   }`}
@@ -242,16 +271,16 @@ export function ZoneHeader({
             <button
               type="button"
               onClick={() => triggerAreaSearch(activeAreaQuery)}
-              className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 flex items-center gap-1"
+              className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 flex items-center gap-1 shrink-0 whitespace-nowrap"
             >
               <Radar className="w-3 h-3" />
-              {isSearchingArea ? "Đang quét..." : `Quét lại vùng này (${searchPinsCount})`}
+              <span>{isSearchingArea ? "Đang quét..." : `Quét lại vùng (${searchPinsCount})`}</span>
             </button>
           )}
         </div>
 
         {/* GỢI Ý AUTOCOMPLETE (ĐỊA CHỈ SỐ NHÀ + QUÉT TOÀN KHU VỰC) */}
-        {mapResults.length > 0 && !selectedPlace && (
+        {isDropdownOpen && mapResults.length > 0 && !selectedPlace && (
           <div className="bg-zinc-900/95 backdrop-blur-md border border-zinc-700 rounded-md shadow-2xl overflow-hidden">
             <button
               type="button"
@@ -270,6 +299,7 @@ export function ZoneHeader({
                   setSelectedPlace(sug);
                   setMapQuery(sug.label);
                   setMapResults([]);
+                  setIsDropdownOpen(false);
                   onFlyToLocation(sug.lat, sug.lng);
                 }}
                 className="w-full text-left px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-800 flex items-start gap-2 border-b border-zinc-800/80 last:border-none"
@@ -282,7 +312,7 @@ export function ZoneHeader({
         )}
 
         {/* HỘP HÀNH ĐỘNG KHI CHỌN 1 ĐỊA CHỈ CỤ THỂ */}
-        {selectedPlace && (
+        {isDropdownOpen && selectedPlace && (
           <div className="bg-zinc-900/95 backdrop-blur-md border border-zinc-700 rounded-md p-3 shadow-2xl space-y-2.5">
             <div className="flex items-start justify-between gap-2">
               <div className="text-xs font-semibold text-white leading-snug line-clamp-2">
@@ -300,6 +330,7 @@ export function ZoneHeader({
               onClick={() => {
                 onTestDestination(selectedPlace);
                 setSelectedPlace(null);
+                setIsDropdownOpen(false);
               }}
               className="w-full py-1.5 px-2.5 rounded-md bg-sky-500 hover:bg-sky-400 text-zinc-950 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
             >
@@ -316,6 +347,7 @@ export function ZoneHeader({
                     onClick={() => {
                       onAssignMemberLocation(idx, selectedPlace);
                       setSelectedPlace(null);
+                      setIsDropdownOpen(false);
                     }}
                     className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[11px] font-medium text-zinc-200 border border-zinc-700 transition"
                   >
