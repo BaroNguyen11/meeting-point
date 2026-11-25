@@ -182,35 +182,3 @@ Truy cập ứng dụng tại **`http://localhost:3000`**.
 | `POST` | `/api/rooms` | Lưu cấu hình nhóm hiện tại và trả về mã phòng chia sẻ (TTL 6 giờ) |
 | `GET` | `/api/rooms/{room_id}` | Khôi phục trạng thái nhóm từ liên kết chia sẻ |
 
----
-
-## 7. Hướng dẫn Deploy Production
-
-### 7.1. Deploy Backend (Railway / Render)
-1. **Thiết lập dịch vụ Web Service:**
-   * **Root Directory:** Thư mục gốc repo (`.`)
-   * **Build Command:** `pip install -r requirements.txt` (hoặc `pip install fastapi uvicorn httpx numpy pandas scipy`)
-   * **Start Command:** `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-2. **Biến môi trường (Environment Variables):**
-   ```ini
-   GRAPH_ADJ_PATH=data/hcm_metro_moto_adj.npz
-   GRAPH_META_PATH=data/hcm_metro_moto_meta.npz
-   POI_CSV_PATH=data/hcm_metro_pois.csv
-   SQLITE_DB_PATH=data/meetpoint.db
-   CORS_ORIGINS=*
-   # Tùy chọn (để kích hoạt làm giàu video review):
-   YOUTUBE_API_KEY=<your-youtube-api-key>
-   GOOGLE_PLACES_API_KEY=<your-google-places-key>
-   ```
-
-### 7.2. Deploy Frontend (Vercel)
-1. **Import Git repository vào Vercel:**
-   * **Framework Preset:** `Next.js`
-   * **Root Directory:** `frontend`
-   * **Build Command:** `next build` (hoặc `npm run build`)
-   * **Output Directory:** `.next`
-2. **Biến môi trường (Environment Variables):**
-   ```ini
-   NEXT_PUBLIC_API_BASE=https://<your-backend-railway-render-domain>
-   ```
-3. Nhấn **Deploy**. Frontend sẽ tự động build production và kết nối tới Backend API.
