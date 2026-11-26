@@ -543,32 +543,12 @@ async def search_places_in_area(
                 cuisine=None if cu in ("", "nan", "None") else cu,
             )
 
-   # 2. Quét trực tiếp từ Goong Places v2 trong bán kính 2km quanh tâm khung nhìn
+  # 2. Chỉ gọi bổ sung tối đa 1 lần Goong (4 kết quả) nếu kho POI nội bộ có ít hơn 3 địa điểm
     idx_counter = 100
-    try:
-        area_ctx = await reverse_geocode(center_lat, center_lng, engine)
-        district = area_ctx.split(",")[-1].strip() if "," in area_ctx else ""
-
-        if sport_intent == "football":
-            queries = ["sân bóng đá", "sân bóng", "sân cỏ nhân tạo"]
-            if district:
-                queries.append(f"sân bóng {district}")
-        elif q_norm and q_norm != "all":
-            queries = [q_clean]
-            if district:
-                queries.append(f"{q_clean} {district}")
-        else:
-            queries = []
-
-        batches = await asyncio.gather(
-            *[
-                query_goong_places(q_item, center_lat, center_lng, limit=10, radius_km=2)
-                for q_item in queries
-            ]
-        )
-
-        for batch in batches:
-            for g in batch:
+    if len(results) < 3 and q_norm and q_norm != "all":
+        try:
+            goong_hits = await query_goong_places(q_clean, center_lat, center_lng, limit=4, radius_km=3)
+            for g in goong_hits:
                 g_lat, g_lng = float(g["lat"]), float(g["lng"])
                 if min_lat <= g_lat <= max_lat and min_lng <= g_lng <= max_lng:
                     parts = [p.strip() for p in g.get("label", "").split(",")]
@@ -584,8 +564,8 @@ async def search_places_in_area(
                         sub_type=sport_intent or cat_intent or "custom",
                     )
                     idx_counter += 1
-    except Exception:
-        pass
+        except Exception:
+            pass
 
     # 3. Bổ sung thêm từ ArcGIS & Photon nếu chưa đủ kết quả trong khung nhìn
     if len(results) < limit and q_norm and q_norm != "all":
