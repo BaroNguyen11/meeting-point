@@ -52,7 +52,7 @@ export default function MeetingPointApp() {
       {
         id: `p_${Date.now()}`,
         name: `Bạn ${nextNum}`,
-        address: "Nhà thờ Đức Bà, Quận 1",
+        address: "",
         lat: 10.7798 + (Math.random() - 0.5) * 0.01,
         lng: 106.699 + (Math.random() - 0.5) * 0.01,
       },

@@ -503,7 +503,7 @@ export function MeetingMap({
         </div>
       `;
       const marker = new maplibregl.Marker({ element: el, draggable: true })
-        .setLngLat([p.lng, p.lat])
+        .setLngLat([p.lng , p.lat])
         .addTo(map);
 
       marker.on("dragend", () => {

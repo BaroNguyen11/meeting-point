@@ -4,6 +4,9 @@ import httpx
 import numpy as np
 import asyncio
 from backend.services.graph_engine import GraphEngine
+import sqlite3
+import os
+import json
 
 HEADERS = {
     "User-Agent": "MeetPointHCMC/4.0 (urban-routing-research)",
@@ -110,7 +113,108 @@ async def _search_arcgis_vn(q_clean: str, focus_lat: float, focus_lng: float, li
     except Exception:
         return []
 
+def _get_goong_cache(cache_key: str) -> list[dict] | None:
+    db_path = os.getenv("SQLITE_DB_PATH", "data/meetpoint.db")
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS geocode_cache (cache_key TEXT PRIMARY KEY, payload TEXT)"
+            )
+            row = conn.execute(
+                "SELECT payload FROM geocode_cache WHERE cache_key = ?", (cache_key,)
+            ).fetchone()
+            return json.loads(row[0]) if row else None
+    except Exception:
+        return None
 
+
+def _set_goong_cache(cache_key: str, results: list[dict]) -> None:
+    if not results:
+        return
+    db_path = os.getenv("SQLITE_DB_PATH", "data/meetpoint.db")
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS geocode_cache (cache_key TEXT PRIMARY KEY, payload TEXT)"
+            )
+            conn.execute(
+                "INSERT OR REPLACE INTO geocode_cache (cache_key, payload) VALUES (?, ?)",
+                (cache_key, json.dumps(results, ensure_ascii=False)),
+            )
+    except Exception:
+        pass
+
+
+async def _fetch_goong_detail_v2(
+    client: httpx.AsyncClient, api_key: str, item: dict
+) -> dict | None:
+    place_id = item.get("place_id")
+    if not place_id:
+        return None
+    try:
+        resp = await client.get(
+            "https://rsapi.goong.io/v2/place/detail",
+            params={"api_key": api_key, "place_id": place_id},
+            timeout=3.5,
+        )
+        if resp.status_code != 200:
+            return None
+        result = resp.json().get("result", {})
+        loc = result.get("geometry", {}).get("location")
+        if not loc:
+            return None
+        return {
+            "label": item.get("description") or result.get("formatted_address", ""),
+            "lat": float(loc["lat"]),
+            "lng": float(loc["lng"]),
+            "source": "goong",
+        }
+    except Exception:
+        return None
+
+
+async def query_goong_places(
+    query: str, center_lat: float = 10.7769, center_lng: float = 106.7009, limit: int = 6
+) -> list[dict]:
+    api_key = os.getenv("GOONG_API_KEY", "").strip()
+    clean_q = query.strip()
+    if not api_key or len(clean_q) < 3:
+        return []
+
+    cache_key = f"goong_v2:{clean_q.lower()}:{round(center_lat, 2)}:{round(center_lng, 2)}"
+    cached = _get_goong_cache(cache_key)
+    if cached is not None:
+        return cached[:limit]
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://rsapi.goong.io/v2/place/autocomplete",
+                params={
+                    "api_key": api_key,
+                    "input": clean_q,
+                    "location": f"{center_lat},{center_lng}",
+                    "radius": 20,
+                    "limit": limit,
+                    "has_deprecated_administrative_unit": "true",
+                },
+                timeout=3.5,
+            )
+            if resp.status_code != 200:
+                return []
+            predictions = resp.json().get("predictions", [])[:limit]
+            if not predictions:
+                return []
+
+            details = await asyncio.gather(
+                *[_fetch_goong_detail_v2(client, api_key, item) for item in predictions]
+            )
+            results = [d for d in details if d is not None]
+            _set_goong_cache(cache_key, results)
+            return results
+    except Exception:
+        return []
+    
 async def forward_geocode(
     q: str,
     engine: GraphEngine,
@@ -123,7 +227,14 @@ async def forward_geocode(
     q_norm = _normalize_vn(q_clean)
     cat_intent = _detect_category_intent(q_norm)
 
-    def _add_result(label: str, lat: float, lng: float, poi_id: int | None = None, category: str | None = None):
+    def _add_result(
+        label: str,
+        lat: float,
+        lng: float,
+        poi_id: int | None = None,
+        category: str | None = None,
+        source: str | None = None,
+    ):
         key = _normalize_vn(label)
         if key in seen_labels:
             return
@@ -133,12 +244,19 @@ async def forward_geocode(
             item["poi_id"] = int(poi_id)
         if category:
             item["category"] = category
+        if source:
+            item["source"] = source
         results.append(item)
 
     # 1. Địa danh lớn & trường đại học
     for lm in HCMC_LANDMARKS:
         if q_norm in _normalize_vn(lm["label"]):
             _add_result(lm["label"], lm["lat"], lm["lng"])
+
+    # 1.5. Goong Places API v2 (ưu tiên địa chỉ chi tiết & quán mới tại Việt Nam)
+    goong_hits = await query_goong_places(q_clean, focus_lat, focus_lng, limit=6)
+    for item in goong_hits:
+        _add_result(item["label"], item["lat"], item["lng"], source="goong")
 
     # 2. Tìm trong dữ liệu POI nội bộ (khớp theo cả tên lẫn ý định danh mục & ưu tiên gần tâm bản đồ)
     if not hasattr(engine, "_poi_norm_series"):

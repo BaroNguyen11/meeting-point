@@ -27,7 +27,7 @@ export function MemberList({
   const [isSearching, setIsSearching] = useState<boolean>(false);
 
   useEffect(() => {
-    if (activeSearchIdx === null || searchQuery.trim().length < 2) {
+    if (activeSearchIdx === null || searchQuery.trim().length < 3) {
       setSuggestions([]);
       return;
     }
@@ -36,7 +36,7 @@ export function MemberList({
       const res = await fetchGeocode(searchQuery);
       setSuggestions(res);
       setIsSearching(false);
-    }, 260);
+    }, 400);
     return () => clearTimeout(timer);
   }, [searchQuery, activeSearchIdx]);
 

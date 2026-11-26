@@ -93,7 +93,7 @@ export function ZoneHeader({
   }, []);
 
   useEffect(() => {
-    if (mapQuery.trim().length < 2) {
+    if (mapQuery.trim().length < 3) {
       setMapResults([]);
       return;
     }
@@ -104,7 +104,7 @@ export function ZoneHeader({
         mapBounds?.centerLng ?? 106.7009
       );
       setMapResults(res);
-    }, 240);
+    }, 400);
     return () => clearTimeout(timer);
   }, [mapQuery, mapBounds?.centerLat, mapBounds?.centerLng]);
 
@@ -143,7 +143,7 @@ export function ZoneHeader({
   };
 
   return (
-    <div className="absolute top-4 left-[416px] right-4 z-20 flex flex-wrap items-start justify-between gap-2 pointer-events-none max-md:top-3 max-md:left-3 max-md:right-3 max-md:flex-col">
+    <div className="absolute top-4 left-104 right-4 z-20 flex flex-wrap items-start justify-between gap-2 pointer-events-none max-md:top-3 max-md:left-3 max-md:right-3 max-md:flex-col">
       {/* CỤM TRÁI: THÔNG TIN TÂM ĐIỂM HẸN */}
       <div className="flex flex-wrap items-center gap-2 pointer-events-auto max-md:order-2 max-md:gap-1.5 max-md:max-w-full">
         {optimum && (
