@@ -174,14 +174,18 @@ async def _fetch_goong_detail_v2(
 
 
 async def query_goong_places(
-    query: str, center_lat: float = 10.7769, center_lng: float = 106.7009, limit: int = 6
+    query: str,
+    center_lat: float = 10.7769,
+    center_lng: float = 106.7009,
+    limit: int = 6,
+    radius_km: int = 20,
 ) -> list[dict]:
     api_key = os.getenv("GOONG_API_KEY", "").strip()
     clean_q = query.strip()
     if not api_key or len(clean_q) < 3:
         return []
 
-    cache_key = f"goong_v2:{clean_q.lower()}:{round(center_lat, 2)}:{round(center_lng, 2)}"
+    cache_key = f"goong_v2:{clean_q.lower()}:{round(center_lat, 3)}:{round(center_lng, 3)}:r{radius_km}"
     cached = _get_goong_cache(cache_key)
     if cached is not None:
         return cached[:limit]
@@ -194,7 +198,7 @@ async def query_goong_places(
                     "api_key": api_key,
                     "input": clean_q,
                     "location": f"{center_lat},{center_lng}",
-                    "radius": 20,
+                    "radius": radius_km,
                     "limit": limit,
                     "has_deprecated_administrative_unit": "true",
                 },
@@ -392,6 +396,7 @@ async def search_places_in_area(
     OSM_GARBAGE_NAMES = (
         "cong vao", "bai giu xe", "nha ve sinh", "gui xe", "toilet",
         "parking", "gate", "entrance", "wc", "loi vao",
+        "chi cuc", "uy ban", "bao ve moi truong", "so tai nguyen", "tru so",
     )
     FOOTBALL_QUERY_WORDS = (
         "san bong da", "san bong", "san banh", "da banh", "bong da",
@@ -538,29 +543,47 @@ async def search_places_in_area(
                 cuisine=None if cu in ("", "nan", "None") else cu,
             )
 
-    # 2. Gộp thêm kết quả từ geocode_search (forward_geocode) nếu trong khung nhìn
+   # 2. Quét trực tiếp từ Goong Places v2 trong bán kính 2km quanh tâm khung nhìn
     idx_counter = 100
     try:
-        geo_hits = await forward_geocode(q_clean, engine, focus_lat=center_lat, focus_lng=center_lng)
-        for g in geo_hits:
-            g_lat, g_lng = float(g["lat"]), float(g["lng"])
-            if min_lat <= g_lat <= max_lat and min_lng <= g_lng <= max_lng:
-                label_parts = g.get("label", "").split(" · ")
-                p_name = label_parts[0].strip()
-                p_addr = label_parts[1].strip() if len(label_parts) > 1 else g.get("label", "")
-                p_id = g.get("poi_id")
-                if p_id is None:
-                    p_id = -idx_counter
+        area_ctx = await reverse_geocode(center_lat, center_lng, engine)
+        district = area_ctx.split(",")[-1].strip() if "," in area_ctx else ""
+
+        if sport_intent == "football":
+            queries = ["sân bóng đá", "sân bóng", "sân cỏ nhân tạo"]
+            if district:
+                queries.append(f"sân bóng {district}")
+        elif q_norm and q_norm != "all":
+            queries = [q_clean]
+            if district:
+                queries.append(f"{q_clean} {district}")
+        else:
+            queries = []
+
+        batches = await asyncio.gather(
+            *[
+                query_goong_places(q_item, center_lat, center_lng, limit=10, radius_km=2)
+                for q_item in queries
+            ]
+        )
+
+        for batch in batches:
+            for g in batch:
+                g_lat, g_lng = float(g["lat"]), float(g["lng"])
+                if min_lat <= g_lat <= max_lat and min_lng <= g_lng <= max_lng:
+                    parts = [p.strip() for p in g.get("label", "").split(",")]
+                    p_name = parts[0] if parts else g.get("label", "")
+                    p_addr = ", ".join(parts[1:]) if len(parts) > 1 else g.get("label", "")
+                    _push_place(
+                        poi_id=-idx_counter,
+                        name=p_name,
+                        address=p_addr,
+                        street=p_addr or engine.get_nearest_street_label(g_lat, g_lng),
+                        lat=g_lat,
+                        lng=g_lng,
+                        sub_type=sport_intent or cat_intent or "custom",
+                    )
                     idx_counter += 1
-                _push_place(
-                    poi_id=p_id,
-                    name=p_name,
-                    address=p_addr,
-                    street=p_addr or engine.get_nearest_street_label(g_lat, g_lng),
-                    lat=g_lat,
-                    lng=g_lng,
-                    sub_type=g.get("category") or sport_intent or cat_intent or "custom",
-                )
     except Exception:
         pass
 
